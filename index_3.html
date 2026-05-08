@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Atlas — See where you've been.</title>
+<meta name="description" content="Atlas reveals the world as you explore it. Watch the fog lift as you travel — every country, every region, yours to uncover."/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a1a; overflow-x: hidden; }
+
+  .nav-wrap { border-bottom: 0.5px solid #e8f5ee; position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 0.875rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .nav-logo { display: flex; align-items: center; gap: 8px; }
+  .lm { width: 26px; height: 26px; background: #3B6D11; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .lt { font-size: 16px; font-weight: 500; letter-spacing: -0.3px; color: #1a1a1a; }
+  .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+  .nav-links a { font-size: 14px; color: #666; text-decoration: none; }
+  .nav-links a:hover { color: #1a1a1a; }
+  .nav-cta { background: #3B6D11 !important; color: #fff !important; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; text-decoration: none; }
+
+  /* HERO */
+  .hero-outer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Topo canvas sits behind everything */
+  #topo-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem 2.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .hero-left {}
+  .badge { display: inline-flex; align-items: center; gap: 6px; background: #EAF3DE; color: #27500A; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 100px; margin-bottom: 1rem; }
+  .badge-dot { width: 6px; height: 6px; background: #639922; border-radius: 50%; flex-shrink: 0; animation: pulse 2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .hero-left h1 { font-size: clamp(32px, 4vw, 52px); font-weight: 500; line-height: 1.05; letter-spacing: -1.5px; margin-bottom: 0.875rem; color: #3B6D11; }
+  .hero-left p { font-size: 16px; color: #666; line-height: 1.6; margin-bottom: 1.5rem; max-width: 380px; }
+
+  .wl-form { display: flex; gap: 8px; }
+  .wl-form input { flex: 1; padding: 10px 13px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; outline: none; font-family: inherit; min-width: 0; }
+  .wl-form input:focus { border-color: #639922; box-shadow: 0 0 0 3px #EAF3DE; }
+  .wl-btn { background: #3B6D11; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .wl-btn:hover { background: #27500A; }
+  .wl-sub { font-size: 11px; color: #999; margin-top: 0.5rem; }
+  .success-msg { display: none; font-size: 13px; color: #3B6D11; font-weight: 500; margin-top: 0.5rem; }
+
+  .globe-frame { width: 100%; aspect-ratio: 4/3; background: #F7FAF4; border-radius: 14px; border: 0.5px solid #d0e8c0; display: flex; align-items: center; justify-content: center; }
+  .globe-ph { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .globe-ph svg { opacity: 0.35; }
+  .globe-ph p { font-size: 11px; color: #639922; font-weight: 500; letter-spacing: 0.4px; }
+
+  .stats-wrap { background: #F7FAF4; border-top: 0.5px solid #e8f5ee; border-bottom: 0.5px solid #e8f5ee; }
+  .stats-row { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-around; padding: 1.25rem 2rem; flex-wrap: wrap; gap: 0.75rem; }
+  .stat-item { text-align: center; }
+  .stat-num { font-size: clamp(20px, 2.5vw, 26px); font-weight: 500; color: #3B6D11; letter-spacing: -0.5px; }
+  .stat-lbl { font-size: 12px; color: #666; margin-top: 1px; }
+
+  .features-outer { max-width: 1100px; margin: 0 auto; padding: 2rem 2rem; }
+  .sec-lbl { font-size: 11px; font-weight: 500; color: #639922; letter-spacing: 1px; text-transform: uppercase; text-align: center; margin-bottom: 0.3rem; }
+  .sec-title { font-size: clamp(20px, 2.5vw, 26px); font-weight: 500; letter-spacing: -0.5px; text-align: center; margin-bottom: 1.25rem; color: #1a1a1a; }
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.875rem; }
+  .feat-card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.1rem; transition: border-color 0.15s; }
+  .feat-card:hover { border-color: #a8d87a; }
+  .feat-icon { width: 32px; height: 32px; background: #EAF3DE; border-radius: 7px; display: flex; align-items: center; justify-content: center; margin-bottom: 0.6rem; }
+  .feat-icon svg { width: 16px; height: 16px; }
+  .feat-card h3 { font-size: 13px; font-weight: 500; margin-bottom: 0.3rem; color: #1a1a1a; }
+  .feat-card p { font-size: 12.5px; color: #666; line-height: 1.5; }
+
+  .ss-wrap { background: #F7FAF4; border-top: 0.5px solid #e0eed0; padding: 2rem 2rem; }
+  .ss-outer { max-width: 1100px; margin: 0 auto; }
+  .ss-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.25rem; }
+  .ss-frame { aspect-ratio: 9/16; background: #ddeeca; border-radius: 16px; border: 0.5px solid #c0dda0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 0.75rem; position: relative; overflow: hidden; }
+  .ss-frame:nth-child(2) { margin-top: -1rem; }
+  .ss-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 44px; height: 4px; background: #b5d490; border-radius: 3px; }
+  .ss-lbl { font-size: 11px; color: #3B6D11; font-weight: 500; }
+
+  .cta-outer { max-width: 1100px; margin: 0 auto; padding: 2rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: center; }
+  .cta-left h2 { font-size: clamp(22px, 2.5vw, 30px); font-weight: 500; letter-spacing: -0.6px; margin-bottom: 0.5rem; color: #1a1a1a; }
+  .cta-left p { font-size: 14px; color: #666; line-height: 1.6; }
+  .cta-form { display: flex; gap: 8px; }
+  .cta-form input { flex: 1; padding: 11px 14px; font-size: 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; outline: none; font-family: inherit; min-width: 0; }
+  .cta-form input:focus { border-color: #639922; box-shadow: 0 0 0 3px #EAF3DE; }
+  .cta-form .wl-btn { background: #3B6D11; padding: 11px 16px; border-radius: 8px; font-size: 14px; }
+
+  .footer-wrap { border-top: 0.5px solid #e8f5ee; }
+  .footer { max-width: 1100px; margin: 0 auto; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; }
+  .footer-left { display: flex; align-items: center; gap: 8px; }
+  .flm { width: 18px; height: 18px; background: #3B6D11; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ft { font-size: 12px; color: #666; }
+  .flinks { display: flex; gap: 1.25rem; }
+  .flinks a { font-size: 12px; color: #666; text-decoration: none; }
+  .flinks a:hover { color: #1a1a1a; }
+
+  @media (max-width: 720px) {
+    .hero-inner { grid-template-columns: 1fr; padding: 2rem 1.25rem; }
+    .hero-left h1 { text-align: center; }
+    .hero-left p { margin: 0 auto 1.5rem; }
+    .wl-form { flex-direction: column; }
+    .wl-btn { width: 100%; }
+    .features-outer { padding: 1.5rem 1.25rem; }
+    .feat-grid { grid-template-columns: 1fr; }
+    .ss-wrap { padding: 1.5rem 1.25rem; }
+    .cta-outer { grid-template-columns: 1fr; padding: 1.5rem 1.25rem; }
+    .nav { padding: 0.875rem 1.25rem; }
+    .nav-links a:not(.nav-cta) { display: none; }
+    .stats-row { padding: 1rem 1.25rem; }
+    .footer { padding: 1rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="nav-wrap">
+  <nav class="nav">
+    <div class="nav-logo">
+      <div class="lm"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="white" stroke-width="1.5"/><path d="M2 8h12M8 2c-2 2-2 8 0 12M8 2c2 2 2 8 0 12" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <span class="lt">Atlas</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#app">The App</a>
+      <a href="#waitlist" class="nav-cta">Join waitlist</a>
+    </div>
+  </nav>
+</div>
+
+<div class="hero-outer" id="waitlist">
+  <canvas id="topo-canvas"></canvas>
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="badge"><div class="badge-dot"></div>Coming soon to iOS</div>
+      <h1>See where you've been.</h1>
+      <p>Atlas reveals the world as you explore it. Watch the fog lift as you travel — every country, every region, yours to uncover.</p>
+      <div class="wl-form">
+        <input type="email" id="email-1" placeholder="your@email.com"/>
+        <button class="wl-btn" onclick="submitWaitlist('email-1','success-1')">Join waitlist</button>
+      </div>
+      <p class="wl-sub">No spam. We'll reach out when Atlas is ready.</p>
+      <div class="success-msg" id="success-1">✓ You're on the list! We'll be in touch.</div>
+    </div>
+    <div class="globe-frame">
+      <div class="globe-ph">
+        <svg width="88" height="88" viewBox="0 0 96 96" fill="none"><circle cx="48" cy="48" r="40" stroke="#3B6D11" stroke-width="2"/><ellipse cx="48" cy="48" rx="18" ry="40" stroke="#3B6D11" stroke-width="1.5"/><path d="M8 48h80" stroke="#3B6D11" stroke-width="1.5"/><path d="M12 32h72M12 64h72" stroke="#3B6D11" stroke-width="1" stroke-dasharray="3 3"/><circle cx="34" cy="36" r="5" fill="#639922" opacity="0.8"/><circle cx="58" cy="52" r="4" fill="#639922" opacity="0.6"/><circle cx="44" cy="60" r="3" fill="#97C459" opacity="0.7"/></svg>
+        <p>App screenshot coming soon</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-wrap">
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-num">195</div><div class="stat-lbl">Countries to unlock</div></div>
+    <div class="stat-item"><div class="stat-num">3,000+</div><div class="stat-lbl">Regions to explore</div></div>
+    <div class="stat-item"><div class="stat-num">∞</div><div class="stat-lbl">Adventures ahead</div></div>
+    <div class="stat-item"><div class="stat-num">1</div><div class="stat-lbl">Globe. Yours.</div></div>
+  </div>
+</div>
+
+<div class="features-outer" id="features">
+  <p class="sec-lbl">Features</p>
+  <h2 class="sec-title">Your world, mapped.</h2>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#3B6D11" stroke-width="1.5"/><path d="M2 9h14M9 2c-2.5 2-2.5 10 0 14" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div><h3>Fog of war globe</h3><p>Start covered in fog. As you travel, it lifts to reveal every country and region you've visited.</p></div>
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L11.5 7H16L12 10.5L13.5 16L9 13L4.5 16L6 10.5L2 7H6.5L9 2Z" stroke="#3B6D11" stroke-width="1.5" stroke-linejoin="round"/></svg></div><h3>State & province detail</h3><p>Go beyond countries. Track individual states, provinces, and regions for granular adventure maps.</p></div>
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="6" cy="7" r="3" stroke="#3B6D11" stroke-width="1.5"/><circle cx="12" cy="7" r="3" stroke="#3B6D11" stroke-width="1.5"/><path d="M1 16c0-2.5 2-4 5-4M17 16c0-2.5-2-4-5-4M9 12c2 0 4 1.5 4 4H5c0-2.5 2-4 4-4z" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div><h3>Social & friends</h3><p>Follow friends, compare maps, and see where your travels overlap. Share postcards from the road.</p></div>
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="#3B6D11" stroke-width="1.5"/><path d="M6 3V2M12 3V2M2 7h14" stroke="#3B6D11" stroke-width="1.2" stroke-linecap="round"/></svg></div><h3>Travel stats</h3><p>Countries, continents, regions — Atlas keeps count so you can focus on the journey.</p></div>
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2C6.2 2 4 4.2 4 7c0 3.5 5 9 5 9s5-5.5 5-9c0-2.8-2.2-5-5-5z" stroke="#3B6D11" stroke-width="1.5"/><circle cx="9" cy="7" r="1.5" fill="#3B6D11"/></svg></div><h3>Automatic unlocks</h3><p>Visit a new place and Atlas detects it automatically. Your map updates as you move.</p></div>
+    <div class="feat-card"><div class="feat-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1.5" stroke="#3B6D11" stroke-width="1.5"/><rect x="10" y="2" width="6" height="6" rx="1.5" stroke="#3B6D11" stroke-width="1.5"/><rect x="2" y="10" width="6" height="6" rx="1.5" stroke="#3B6D11" stroke-width="1.5"/><rect x="10" y="10" width="6" height="6" rx="1.5" stroke="#3B6D11" stroke-width="1.5"/></svg></div><h3>Postcards</h3><p>Capture and share moments from your travels. Beautiful, shareable postcards from Atlas.</p></div>
+  </div>
+</div>
+
+<div class="ss-wrap" id="app">
+  <div class="ss-outer">
+    <p class="sec-lbl">The app</p>
+    <h2 class="sec-title">Built for explorers.</h2>
+    <div class="ss-grid">
+      <div class="ss-frame"><div class="ss-notch"></div><span class="ss-lbl">Globe view</span></div>
+      <div class="ss-frame"><div class="ss-notch"></div><span class="ss-lbl">Your stats</span></div>
+      <div class="ss-frame"><div class="ss-notch"></div><span class="ss-lbl">Friends</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="cta-outer">
+  <div class="cta-left">
+    <h2>Ready to lift the fog?</h2>
+    <p>Be the first to know when Atlas lands on the App Store. No spam, ever.</p>
+  </div>
+  <div>
+    <div class="cta-form">
+      <input type="email" id="email-2" placeholder="your@email.com"/>
+      <button class="wl-btn" onclick="submitWaitlist('email-2','success-2')">Join waitlist</button>
+    </div>
+    <p class="wl-sub" style="margin-top:0.5rem;">Coming to iOS.</p>
+    <div class="success-msg" id="success-2">✓ You're on the list! We'll be in touch.</div>
+  </div>
+</div>
+
+<div class="footer-wrap">
+  <footer class="footer">
+    <div class="footer-left">
+      <div class="flm"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="white" stroke-width="1.5"/><path d="M2 8h12M8 2c-2 2-2 8 0 12" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <span class="ft">Atlas — see where you've been.</span>
+    </div>
+    <div class="flinks">
+      <a href="#">Privacy</a>
+      <a href="#">Contact</a>
+      <a href="#">Instagram</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+function submitWaitlist(inputId, successId) {
+  const input = document.getElementById(inputId);
+  const success = document.getElementById(successId);
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) { input.style.borderColor = '#E24B4A'; input.focus(); return; }
+  input.closest('.wl-form,.cta-form').style.display = 'none';
+  success.style.display = 'block';
+}
+
+// Subtle topographic contour lines in the hero background
+(function() {
+  const canvas = document.getElementById('topo-canvas');
+  const hero = canvas.parentElement;
+
+  function resize() {
+    canvas.width = hero.offsetWidth;
+    canvas.height = hero.offsetHeight;
+    draw();
+  }
+
+  function noise(x, y) {
+    // Smooth multi-octave noise using sine harmonics
+    return (
+      Math.sin(x * 0.009 + 1.2) * Math.cos(y * 0.011 + 0.8) * 0.45 +
+      Math.sin(x * 0.022 + 2.4) * Math.sin(y * 0.018 + 1.6) * 0.30 +
+      Math.cos(x * 0.005 + 0.6) * Math.cos(y * 0.007 + 2.1) * 0.25
+    );
+  }
+
+  function draw() {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const levels = 18;
+    const step = 4; // sample every 4px for performance
+
+    for (let l = 0; l < levels; l++) {
+      const threshold = -0.9 + l * (1.8 / levels);
+      const isMajor = l % 5 === 0;
+      // Very faint — this is pure texture
+      const alpha = isMajor ? 0.18 : 0.10;
+      ctx.strokeStyle = `rgba(59, 109, 17, ${alpha})`;
+      ctx.lineWidth = isMajor ? 1.2 : 0.7;
+      ctx.beginPath();
+
+      // Marching squares — trace contour lines
+      for (let x = 0; x < W - step; x += step) {
+        for (let y = 0; y < H - step; y += step) {
+          const v00 = noise(x, y);
+          const v10 = noise(x + step, y);
+          const v01 = noise(x, y + step);
+          const v11 = noise(x + step, y + step);
+
+          // Interpolate crossing points
+          function interp(a, b, t) { return a + (b - a) * ((t - a) / (b - a)); }
+
+          const crossings = [];
+          // Top edge
+          if ((v00 < threshold) !== (v10 < threshold)) {
+            const tx = x + step * (threshold - v00) / (v10 - v00);
+            crossings.push([tx, y]);
+          }
+          // Bottom edge
+          if ((v01 < threshold) !== (v11 < threshold)) {
+            const tx = x + step * (threshold - v01) / (v11 - v01);
+            crossings.push([tx, y + step]);
+          }
+          // Left edge
+          if ((v00 < threshold) !== (v01 < threshold)) {
+            const ty = y + step * (threshold - v00) / (v01 - v00);
+            crossings.push([x, ty]);
+          }
+          // Right edge
+          if ((v10 < threshold) !== (v11 < threshold)) {
+            const ty = y + step * (threshold - v10) / (v11 - v10);
+            crossings.push([x + step, ty]);
+          }
+
+          if (crossings.length >= 2) {
+            ctx.moveTo(crossings[0][0], crossings[0][1]);
+            ctx.lineTo(crossings[1][0], crossings[1][1]);
+          }
+        }
+      }
+      ctx.stroke();
+    }
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+})();
+</script>
+</body>
+</html>
